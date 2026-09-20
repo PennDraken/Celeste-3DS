@@ -410,8 +410,8 @@ static CLOUD clouds[17];
 static void PRELUDE_initclouds() {
 	for (int i=0; i<=16; i++) {
 		clouds[i] = (CLOUD){
-			.x=P8rnd(128),
-			.y=P8rnd(128),
+			.x=P8rnd(ROOM_SIZE),
+			.y=P8rnd(ROOM_SIZE),
 			.spd=1+P8rnd(4),
 			.w=32+P8rnd(32),
 		};
@@ -430,8 +430,8 @@ static PARTICLE dead_particles[8];
 static void PRELUDE_initparticles() {
 	for (int i=0; i<=24; i++) {
 		particles[i] = (PARTICLE){
-			.x=P8rnd(128),
-			.y=P8rnd(128),
+			.x=P8rnd(ROOM_SIZE),
+			.y=P8rnd(ROOM_SIZE),
 			.s=0+P8flr(P8rnd(5)/4),
 			.spd=0.25f+P8rnd(5),
 			.off=P8rnd(1),
@@ -693,7 +693,7 @@ static void PLAYER_update(OBJ* this) {
 	}
 	 
 	// bottom death
-	if (this->y>128) {
+	if (this->y>ROOM_SIZE) {
 		do_kill_player = true;
 	}
 	if (do_kill_player) {
@@ -886,8 +886,8 @@ static void PLAYER_update(OBJ* this) {
 }
 static void PLAYER_draw(OBJ* this) {
 	// clamp in screen
-	if (this->x<-1 || this->x>121) { 
-		this->x=clamp(this->x,-1,121);
+	if (this->x<-1 || this->x>ROOM_SIZE-7) {
+		this->x=clamp(this->x,-1,ROOM_SIZE-7);
 		this->spd.x=0;
 	}
    
@@ -939,7 +939,7 @@ static void PLAYER_SPAWN_init(OBJ* this) {
 	this->spr=3;
 	this->target.x=this->x;
 	this->target.y=this->y;
-	this->y=128;
+	this->y=ROOM_SIZE;
 	this->spd.y=-4;
 	this->state=0;
 	this->delay=0;
@@ -1266,10 +1266,10 @@ static void FAKE_WALL_update(OBJ* this) {
 		P8sfx(16);
 		//destroy_object(this);
 		init_object(OBJ_SMOKE,this->x,this->y);
-		init_object(OBJ_SMOKE,this->x+8,this->y);
-		init_object(OBJ_SMOKE,this->x,this->y+8);
-		init_object(OBJ_SMOKE,this->x+8,this->y+8);
-		init_object(OBJ_FRUIT,this->x+4,this->y+4);
+		init_object(OBJ_SMOKE,this->x+TILE_SIZE,this->y);
+		init_object(OBJ_SMOKE,this->x,this->y+TILE_SIZE);
+		init_object(OBJ_SMOKE,this->x+TILE_SIZE,this->y+TILE_SIZE);
+		init_object(OBJ_FRUIT,this->x+TILE_SIZE/2,this->y+TILE_SIZE/2);
 		destroy_object(this); //LEMON: moved here. see PLAYER_update. also returning to avoid modifying removed object
 		return;
 	}
@@ -1277,9 +1277,9 @@ static void FAKE_WALL_update(OBJ* this) {
 }
 static void FAKE_WALL_draw(OBJ* this) {
 	P8spr(64,this->x,this->y,	1,1,false,false);
-	P8spr(65,this->x+8,this->y,	1,1,false,false);
-	P8spr(80,this->x,this->y+8,	1,1,false,false);
-	P8spr(81,this->x+8,this->y+8,	1,1,false,false);
+	P8spr(65,this->x+TILE_SIZE,this->y,	1,1,false,false);
+	P8spr(80,this->x,this->y+TILE_SIZE,	1,1,false,false);
+	P8spr(81,this->x+TILE_SIZE,this->y+TILE_SIZE,	1,1,false,false);
 }
 
 //key
@@ -1330,8 +1330,8 @@ static void PLATFORM_init(OBJ* this) {
 }
 static void PLATFORM_update(OBJ* this) {
 	this->spd.x=this->dir*0.65;
-	if (this->x<-16) { this->x=128;
-	} else if (this->x>128) { this->x=-16; }
+	if (this->x<-2*TILE_SIZE) { this->x=ROOM_SIZE;
+	} else if (this->x>ROOM_SIZE) { this->x=-2*TILE_SIZE; }
 	if (!OBJ_check(this, OBJ_PLAYER,0,0)) {
 		OBJ* hit=OBJ_collide(this, OBJ_PLAYER,0,-1);
 		if (hit!=NULL) {
@@ -1342,7 +1342,7 @@ static void PLATFORM_update(OBJ* this) {
 }
 static void PLATFORM_draw(OBJ* this) {
 	P8spr(11,this->x,this->y-1,	 1,1,false,false);
-	P8spr(12,this->x+8,this->y-1,   1,1,false,false);
+	P8spr(12,this->x+TILE_SIZE,this->y-1,   1,1,false,false);
 }
 
 //message
@@ -1358,7 +1358,7 @@ static void MESSAGE_draw(OBJ* this) {
 				P8sfx(35);
 			}
 		}
-		this->off2.x=8;
+		this->off2.x=TILE_SIZE;
 		this->off2.y=96;
 		for (int i=0; i<this->index; i++) {
 			if (this->text[i]!='#') {
@@ -1368,7 +1368,7 @@ static void MESSAGE_draw(OBJ* this) {
 				P8print(charstr,this->off2.x,this->off2.y,0);
 				this->off2.x+=5;
 			} else {
-				this->off2.x=8;
+				this->off2.x=TILE_SIZE;
 				this->off2.y+=7;
 			}
 		}
@@ -1386,7 +1386,7 @@ static void BIG_CHEST_init(OBJ* this) {
 }
 static void BIG_CHEST_draw(OBJ* this) {
 	if (this->state==0) {
-		OBJ* hit=OBJ_collide(this, OBJ_PLAYER,0,8);
+		OBJ* hit=OBJ_collide(this, OBJ_PLAYER,0,TILE_SIZE);
 		if (hit!=NULL && OBJ_is_solid(hit, 0,1)) {
 			P8music(-1,500,7);
 			P8sfx(37);
@@ -1395,12 +1395,12 @@ static void BIG_CHEST_draw(OBJ* this) {
 			hit->spd.y=0;
 			this->state=1;
 			init_object(OBJ_SMOKE,this->x,this->y);
-			init_object(OBJ_SMOKE,this->x+8,this->y);
+			init_object(OBJ_SMOKE,this->x+TILE_SIZE,this->y);
 			this->timer=60;
 			this->particle_count = 0;
 		}
 		P8spr(96,this->x,this->y,   1,1,false,false);
-		P8spr(97,this->x+8,this->y,  1,1,false,false);
+		P8spr(97,this->x+TILE_SIZE,this->y,  1,1,false,false);
 	} else if (this->state==1) {
 		this->timer-=1;
 		shake=5;
@@ -1409,7 +1409,7 @@ static void BIG_CHEST_draw(OBJ* this) {
 			this->particles[this->particle_count++] = (PARTICLE){
 				.x=1+P8rnd(14),
 				.y=0,
-				.spd=8+P8rnd(8),
+				.spd=TILE_SIZE+P8rnd(TILE_SIZE),
 				.h=32+P8rnd(32)
 			};
 		}
@@ -1424,11 +1424,11 @@ static void BIG_CHEST_draw(OBJ* this) {
 		for (int i = 0; i < this->particle_count; i++) {
 			PARTICLE* p = &this->particles[i];
 			p->y+=p->spd;
-			P8line(this->x+p->x,this->y+8-p->y,this->x+p->x,P8min(this->y+8-p->y+p->h,this->y+8),7);
+			P8line(this->x+p->x,this->y+TILE_SIZE-p->y,this->x+p->x,P8min(this->y+TILE_SIZE-p->y+p->h,this->y+TILE_SIZE),7);
 		}
 	}
-	P8spr(112,this->x,this->y+8,   1,1,false,false);
-	P8spr(113,this->x+8,this->y+8, 1,1,false,false);
+	P8spr(112,this->x,this->y+TILE_SIZE,   1,1,false,false);
+	P8spr(113,this->x+TILE_SIZE,this->y+TILE_SIZE, 1,1,false,false);
 }
 
 //orb
@@ -1454,7 +1454,7 @@ static void ORB_draw(OBJ* this) {
 	P8spr(102,this->x,this->y,  1,1,false,false);
 	float off=(float)frames/30.f;
 	for (float i=0; i <= 7; i+=1) {
-		P8circfill(this->x+4+P8cos(off+i/8.f)*8,this->y+4+P8sin(off+i/8.f)*8,1,7);
+		P8circfill(this->x+TILE_SIZE/2+P8cos(off+i/8.f)*TILE_SIZE,this->y+TILE_SIZE/2+P8sin(off+i/8.f)*TILE_SIZE,1,7);
 	}
 	if (destroy_self) destroy_object(this);
 }
@@ -1558,7 +1558,7 @@ static OBJ* init_object(OBJTYPE type, float x, float y) {
 
 	obj->x = x;
 	obj->y = y;
-	obj->hitbox = (HITBOX){ .x=0,.y=0,.w=8,.h=8 };
+	obj->hitbox = (HITBOX){ .x=0,.y=0,.w=TILE_SIZE,.h=TILE_SIZE };
 
 	obj->spd = (VEC){.x=0,.y=0};
 	obj->rem = (VEC){.x=0,.y=0};
@@ -1652,15 +1652,15 @@ static void load_room(int x, int y) {
 		for (int ty=0; ty <= 15; ty++) {
 			int tile = P8mget(room.x*16+tx,room.y*16+ty);
 			if (tile==11) {
-				init_object(OBJ_PLATFORM,tx*8,ty*8)->dir=-1;
+				init_object(OBJ_PLATFORM,tx*TILE_SIZE,ty*TILE_SIZE)->dir=-1;
 				//newcount++;
 			} else if (tile==12) {
-				init_object(OBJ_PLATFORM,tx*8,ty*8)->dir=1;
+				init_object(OBJ_PLATFORM,tx*TILE_SIZE,ty*TILE_SIZE)->dir=1;
 				//newcount++;
 			} else {
 				for (int type = 0; type < OBJTYPE_COUNT; type++) { //safe since types are ordered starting at 0
 					if (tile == OBJTYPE_prop[type].tile) {
-						init_object((OBJTYPE)type, tx*8, ty*8);
+						init_object((OBJTYPE)type, tx*TILE_SIZE, ty*TILE_SIZE);
 						//newcount++;
 					}
 				}
@@ -1804,7 +1804,7 @@ void Celeste_P8_draw() {
 	} else if (new_bg) {
 		bg_col=2;
 	}
-	P8rectfill(0,0,128,128,bg_col);
+	P8rectfill(0,0,ROOM_SIZE,ROOM_SIZE,bg_col);
 
 	// clouds
 	if (!is_title()) {
@@ -1812,9 +1812,9 @@ void Celeste_P8_draw() {
 			CLOUD* c = &clouds[i];
 			c->x += c->spd;
 			P8rectfill(c->x,c->y,c->x+c->w,c->y+4+(1-c->w/64.0)*12,new_bg ? 14 : 1);
-			if (c->x > 128) {
+			if (c->x > ROOM_SIZE) {
 				c->x = -c->w;
-				c->y = P8rnd(128-8);
+				c->y = P8rnd(ROOM_SIZE-TILE_SIZE);
 			}
 		}
 	}
@@ -1857,9 +1857,9 @@ void Celeste_P8_draw() {
 		p->y += P8sin(p->off);
 		p->off+= P8min(0.05,p->spd/32);
 		P8rectfill(p->x,p->y,p->x+p->s,p->y+p->s,p->c);
-		if (p->x>128+4) { 
+		if (p->x>ROOM_SIZE+4) {
 			p->x=-4;
-			p->y=P8rnd(128);
+			p->y=P8rnd(ROOM_SIZE);
 		}
 		p++;
 	}
@@ -1879,10 +1879,10 @@ void Celeste_P8_draw() {
 	}
    
 	// draw outside of the screen for screenshake
-	P8rectfill(-5,-5,-1,133,0);
-	P8rectfill(-5,-5,133,-1,0);
-	P8rectfill(-5,128,133,133,0);
-	P8rectfill(128,-5,133,133,0);
+	P8rectfill(-5,-5,-1,ROOM_SIZE+5,0);
+	P8rectfill(-5,-5,ROOM_SIZE+5,-1,0);
+	P8rectfill(-5,ROOM_SIZE,ROOM_SIZE+5,ROOM_SIZE+5,0);
+	P8rectfill(ROOM_SIZE,-5,ROOM_SIZE+5,ROOM_SIZE+5,0);
    
 	// credits
 	if (is_title()) {
@@ -1901,8 +1901,8 @@ void Celeste_P8_draw() {
 		}
 		if (p!=NULL) {
 			float diff=P8min(24,40-P8abs(p->x+4-64));
-			P8rectfill(0,0,diff,128,0);
-			P8rectfill(128-diff,0,128,128,0);
+			P8rectfill(0,0,diff,ROOM_SIZE,0);
+			P8rectfill(ROOM_SIZE-diff,0,ROOM_SIZE,ROOM_SIZE,0);
 		}
 	}
 }
@@ -1958,8 +1958,8 @@ static bool ice_at(int x,int y,int w,int h) {
 }
 
 static bool tile_flag_at(int x,int y,int w,int h,int flag) {
-	for (int i=(int)P8max(0,P8flr(x/8)); i <= P8min(15,(x+w-1)/8); i++) {
-		 for (int j=(int)P8max(0,P8flr(y/8)); j <= P8min(15,(y+h-1)/8); j++) {
+	for (int i=(int)P8max(0,P8flr(x/TILE_SIZE)); i <= P8min(15,(x+w-1)/TILE_SIZE); i++) {
+		 for (int j=(int)P8max(0,P8flr(y/TILE_SIZE)); j <= P8min(15,(y+h-1)/TILE_SIZE); j++) {
 			if (P8fget(tile_at(i,j),flag)) {
 				return true;
 			}
@@ -1973,16 +1973,16 @@ static int tile_at(int x,int y) {
 }
 
 static bool spikes_at(float x,float y,int w,int h,float xspd,float yspd) {
-	for (int i=(int)P8max(0,P8flr(x/8)); i <= P8min(15,(x+w-1)/8); i++) {
-		for (int j=(int)P8max(0,P8flr(y/8)); j <= P8min(15,(y+h-1)/8); j++) {
+	for (int i=(int)P8max(0,P8flr(x/TILE_SIZE)); i <= P8min(15,(x+w-1)/TILE_SIZE); i++) {
+		for (int j=(int)P8max(0,P8flr(y/TILE_SIZE)); j <= P8min(15,(y+h-1)/TILE_SIZE); j++) {
 			int tile=tile_at(i,j);
-			if (tile==17 && (P8modulo(y+h-1, 8)>=6 || y+h==j*8+8) && yspd>=0) {
+			if (tile==17 && (P8modulo(y+h-1, TILE_SIZE)>=TILE_SIZE-2 || y+h==j*TILE_SIZE+TILE_SIZE) && yspd>=0) {
 				return true;
-			} else if (tile==27 && P8modulo(y, 8)<=2 && yspd<=0) {
+			} else if (tile==27 && P8modulo(y, TILE_SIZE)<=2 && yspd<=0) {
 				return true;
-			} else if (tile==43 && P8modulo(x, 8)<=2 && xspd<=0) {
+			} else if (tile==43 && P8modulo(x, TILE_SIZE)<=2 && xspd<=0) {
 				return true;
-			} else if (tile==59 && (P8modulo(x+w-1, 8)>=6 || x+w==i*8+8) && xspd>=0) {
+			} else if (tile==59 && (P8modulo(x+w-1, TILE_SIZE)>=TILE_SIZE-2 || x+w==i*TILE_SIZE+TILE_SIZE) && xspd>=0) {
 				return true;
 			}
 		}

@@ -40,9 +40,8 @@ SDL_Surface* font = NULL;
 Mix_Chunk* snd[64] = {NULL};
 Mix_Music* mus[6] = {NULL};
 
-#define PICO8_W 240
-#define PICO8_H 240
-#define TILE_SIZE 15
+#define PICO8_W ROOM_SIZE
+#define PICO8_H ROOM_SIZE
 
 #ifdef _3DS
 static const int scale = 1;
@@ -763,12 +762,12 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 
 			if (sprite >= 0) {
 				SDL_Rect srcrc = {
-					8*(sprite % 16),
-					8*(sprite / 16)
+					TILE_SIZE*(sprite % 16),
+					TILE_SIZE*(sprite / 16)
 				};
 				srcrc.x *= scale;
 				srcrc.y *= scale;
-				srcrc.w = srcrc.h = scale*8;
+				srcrc.w = srcrc.h = scale*TILE_SIZE;
 				SDL_Rect dstrc = {
 					(x - camera_x)*scale, (y - camera_y)*scale,
 					scale, scale
@@ -909,15 +908,15 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 					//hack
 					if (mask == 0 || (mask == 4 && tile_flags[tile] == 4) || gettileflag(tile, mask != 4 ? mask-1 : mask)) {
 						SDL_Rect srcrc = {
-							8*(tile % 16),
-							8*(tile / 16)
+							TILE_SIZE*(tile % 16),
+							TILE_SIZE*(tile / 16)
 						};
 						srcrc.x *= scale;
 						srcrc.y *= scale;
-						srcrc.w = srcrc.h = scale*8;
+						srcrc.w = srcrc.h = scale*TILE_SIZE;
 						SDL_Rect dstrc = {
-							(tx+x*8 - camera_x)*scale, (ty+y*8 - camera_y)*scale,
-							scale*8, scale*8
+							(tx+x*TILE_SIZE - camera_x)*scale, (ty+y*TILE_SIZE - camera_y)*scale,
+							scale*TILE_SIZE, scale*TILE_SIZE
 						};
 
 						if (0) {
