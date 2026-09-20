@@ -165,13 +165,18 @@ static void loadbmpscale(char* filename, SDL_Surface** s) {
 #define LOGLOAD(w) printf("loading %s...", w)
 #define LOGDONE() printf("done\n")
 
+#define FONT_TILE_SIZE 15
+#define FONT_GLYPH_W 6
+#define FONT_GLYPH_H 9
+#define FONT_ADVANCE_X 6
+
 static void LoadData(void) {
 	LOGLOAD("gfx.bmp");
 	loadbmpscale("gfx.bmp", &gfx);
 	LOGDONE();
 	
-	LOGLOAD("font.bmp");
-	loadbmpscale("font.bmp", &font);
+	LOGLOAD("font_large.bmp");
+	loadbmpscale("font_large.bmp", &font);
 	LOGDONE();
 
 	static const char sndids[] = {0,1,2,3,4,5,6,7,8,9,13,14,15,16,23,35,37,38,40,50,51,54,55};
@@ -235,8 +240,8 @@ static void OSDdraw(void) {
 		--osd_timer;
 		const int x = 4;
 		const int y = 120 + (osd_timer < 10 ? 10-osd_timer : 0); //disappear by going below the screen
-		p8_rectfill(x-2, y-2, x+4*strlen(osd_text), y+6, 6); //outline
-		p8_rectfill(x-1, y-1, x+4*strlen(osd_text)-1, y+5, 0);
+		p8_rectfill(x-2, y-2, x+FONT_ADVANCE_X*strlen(osd_text), y+FONT_GLYPH_H, 6); //outline
+		p8_rectfill(x-1, y-1, x+FONT_ADVANCE_X*strlen(osd_text)-1, y+FONT_GLYPH_H-1, 0);
 		p8_print(osd_text, x, y, 7);
 	}
 }
@@ -703,14 +708,14 @@ static void p8_rectfill(int x0, int y0, int x1, int y1, int col) {
 static void p8_print(const char* str, int x, int y, int col) {
 	for (char c = *str; c; c = *(++str)) {
 		c &= 0x7F;
-		SDL_Rect srcrc = {8*(c%16), 8*(c/16)};
+		SDL_Rect srcrc = {FONT_TILE_SIZE*(c%16), FONT_TILE_SIZE*(c/16)};
 		srcrc.x *= scale;
 		srcrc.y *= scale;
-		srcrc.w = srcrc.h = 8*scale;
+		srcrc.w = srcrc.h = FONT_TILE_SIZE*scale;
 		
 		SDL_Rect dstrc = {x*scale, y*scale, scale, scale};
 		Xblit(font, &srcrc, screen, &dstrc, col, 0,0);
-		x += 4;
+		x += FONT_ADVANCE_X;
 	}
 }
 
