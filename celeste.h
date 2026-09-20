@@ -16,9 +16,11 @@ typedef enum {
 typedef _Bool Celeste_P8_bool_t;
 typedef int (*Celeste_P8_cb_func_t) (CELESTE_P8_CALLBACK_TYPE calltype, ...);
 
-#define TILE_SIZE 15
 #define ROOM_TILE_COUNT 16
-#define ROOM_SIZE (ROOM_TILE_COUNT * TILE_SIZE)
+#define LOGICAL_TILE_SIZE 8
+#define TILE_SIZE 15
+#define LOGICAL_ROOM_SIZE (ROOM_TILE_COUNT * LOGICAL_TILE_SIZE)
+#define SCREEN_SIZE (ROOM_TILE_COUNT * TILE_SIZE)
 
 extern void Celeste_P8_set_call_func(Celeste_P8_cb_func_t func);
 extern void Celeste_P8_set_rndseed(unsigned seed);

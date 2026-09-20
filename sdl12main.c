@@ -40,8 +40,8 @@ SDL_Surface* font = NULL;
 Mix_Chunk* snd[64] = {NULL};
 Mix_Music* mus[6] = {NULL};
 
-#define PICO8_W ROOM_SIZE
-#define PICO8_H ROOM_SIZE
+#define PICO8_W SCREEN_SIZE
+#define PICO8_H SCREEN_SIZE
 
 #ifdef _3DS
 static const int scale = 1;

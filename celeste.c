@@ -168,11 +168,15 @@ void Celeste_P8_set_rndseed(unsigned seed) {
 }
 
 ///////PICO-8 functions
+static inline int P8screen(float logical_coord) {
+	return (int)(logical_coord * TILE_SIZE / LOGICAL_TILE_SIZE);
+}
+
 static inline void P8music(int track, int fade, int mask) {
 	Celeste_P8_call(CELESTE_P8_MUSIC, track, fade, mask);
 }
-static inline void P8spr(int sprite, int x, int y, int cols, int rows, bool flipx, bool flipy) {
-	Celeste_P8_call(CELESTE_P8_SPR, sprite, x, y, cols, rows, flipx, flipy);
+static inline void P8spr(int sprite, float x, float y, int cols, int rows, bool flipx, bool flipy) {
+	Celeste_P8_call(CELESTE_P8_SPR, sprite, P8screen(x), P8screen(y), cols, rows, flipx, flipy);
 }
 static inline bool P8btn(int b) {
 	return Celeste_P8_call(CELESTE_P8_BTN, b);
@@ -186,17 +190,17 @@ static inline void P8pal(int a, int b) {
 static inline void P8pal_reset() {
 	Celeste_P8_call(CELESTE_P8_PAL_RESET);
 }
-static inline void P8circfill(int x, int y, int r, int c) {
-	Celeste_P8_call(CELESTE_P8_CIRCFILL, x,y,r,c);
+static inline void P8circfill(float x, float y, float r, int c) {
+	Celeste_P8_call(CELESTE_P8_CIRCFILL, P8screen(x),P8screen(y),P8screen(r),c);
 }
-static inline void P8rectfill(int x, int y, int x2, int y2, int c) {
-	Celeste_P8_call(CELESTE_P8_RECTFILL, x,y,x2,y2,c);
+static inline void P8rectfill(float x, float y, float x2, float y2, int c) {
+	Celeste_P8_call(CELESTE_P8_RECTFILL, P8screen(x),P8screen(y),P8screen(x2),P8screen(y2),c);
 }
-static inline void P8print(const char* str, int x, int y, int c) {
-	Celeste_P8_call(CELESTE_P8_PRINT, str,x,y,c);
+static inline void P8print(const char* str, float x, float y, int c) {
+	Celeste_P8_call(CELESTE_P8_PRINT, str,P8screen(x),P8screen(y),c);
 }
-static inline void P8line(int x, int y, int x2, int y2, int c) {
-	Celeste_P8_call(CELESTE_P8_LINE, x,y,x2,y2,c);
+static inline void P8line(float x, float y, float x2, float y2, int c) {
+	Celeste_P8_call(CELESTE_P8_LINE, P8screen(x),P8screen(y),P8screen(x2),P8screen(y2),c);
 }
 static inline int P8mget(int x, int y) {
 	return Celeste_P8_call(CELESTE_P8_MGET, x,y);
@@ -204,11 +208,11 @@ static inline int P8mget(int x, int y) {
 static inline bool P8fget(int t, int f) {
 	return Celeste_P8_call(CELESTE_P8_FGET, t,f);
 }
-static inline void P8camera(int x, int y) {
-	Celeste_P8_call(CELESTE_P8_CAMERA, x, y);
+static inline void P8camera(float x, float y) {
+	Celeste_P8_call(CELESTE_P8_CAMERA, P8screen(x), P8screen(y));
 }
-static inline void P8map(int mx, int my, int tx, int ty, int mw, int mh, int mask) {
-	Celeste_P8_call(CELESTE_P8_MAP, mx, my, tx, ty, mw, mh, mask);
+static inline void P8map(int mx, int my, float tx, float ty, int mw, int mh, int mask) {
+	Celeste_P8_call(CELESTE_P8_MAP, mx, my, P8screen(tx), P8screen(ty), mw, mh, mask);
 }
 //these values dont matter as set_rndseed should be called before init, as long as they arent both zero
 static unsigned rnd_seed_lo = 0, rnd_seed_hi = 1;
@@ -264,12 +268,12 @@ static _fix32 P8rnd(_fix32 max) {
 #ifdef CELESTE_P8_FIXEDP
 //these need explicit casts to int
 #define P8pal(_a,_b) P8pal(int(_a), int(_b))
-#define P8spr(_s,_x,_y,_c,_r,_fx,_fy) P8spr(int(_s), int(_x), int(_y), (_c),(_r), (_fx),(_fy))
-#define P8circfill(_x,_y,_r,_c) P8circfill(int(_x), int(_y), int(_r), (_c))
-#define P8rectfill(_x0,_y0,_x1,_y1,_c) P8rectfill(int(_x0),int(_y0),int(_x1),int(_y1), int(_c))
-#define P8print(_s,_x,_y,_c) P8print(_s,int(_x),int(_y),(_c))
-#define P8line(_x0,_y0,_x1,_y1,_c) P8line(int(_x0),int(_y0),int(_x1),int(_y1),(_c))
-#define P8camera(_x,_y) P8camera(int(_x),int(_y))
+#define P8spr(_s,_x,_y,_c,_r,_fx,_fy) P8spr(int(_s), (_x), (_y), (_c),(_r), (_fx),(_fy))
+#define P8circfill(_x,_y,_r,_c) P8circfill((_x), (_y), (_r), (_c))
+#define P8rectfill(_x0,_y0,_x1,_y1,_c) P8rectfill((_x0),(_y0),(_x1),(_y1), int(_c))
+#define P8print(_s,_x,_y,_c) P8print(_s,(_x),(_y),(_c))
+#define P8line(_x0,_y0,_x1,_y1,_c) P8line((_x0),(_y0),(_x1),(_y1),(_c))
+#define P8camera(_x,_y) P8camera((_x),(_y))
 static inline bool ice_at(float x,float y,float w,float h) { return ice_at(int(x),int(y),int(w),int(h)); }
 static inline bool solid_at(float x,float y,float w,float h) { return solid_at(int(x),int(y),int(w),int(h)); }
 #endif
@@ -410,8 +414,8 @@ static CLOUD clouds[17];
 static void PRELUDE_initclouds() {
 	for (int i=0; i<=16; i++) {
 		clouds[i] = (CLOUD){
-			.x=P8rnd(ROOM_SIZE),
-			.y=P8rnd(ROOM_SIZE),
+			.x=P8rnd(LOGICAL_ROOM_SIZE),
+			.y=P8rnd(LOGICAL_ROOM_SIZE),
 			.spd=1+P8rnd(4),
 			.w=32+P8rnd(32),
 		};
@@ -430,8 +434,8 @@ static PARTICLE dead_particles[8];
 static void PRELUDE_initparticles() {
 	for (int i=0; i<=24; i++) {
 		particles[i] = (PARTICLE){
-			.x=P8rnd(ROOM_SIZE),
-			.y=P8rnd(ROOM_SIZE),
+			.x=P8rnd(LOGICAL_ROOM_SIZE),
+			.y=P8rnd(LOGICAL_ROOM_SIZE),
 			.s=0+P8flr(P8rnd(5)/4),
 			.spd=0.25f+P8rnd(5),
 			.off=P8rnd(1),
@@ -693,7 +697,7 @@ static void PLAYER_update(OBJ* this) {
 	}
 	 
 	// bottom death
-	if (this->y>ROOM_SIZE) {
+	if (this->y>LOGICAL_ROOM_SIZE) {
 		do_kill_player = true;
 	}
 	if (do_kill_player) {
@@ -886,8 +890,8 @@ static void PLAYER_update(OBJ* this) {
 }
 static void PLAYER_draw(OBJ* this) {
 	// clamp in screen
-	if (this->x<-1 || this->x>ROOM_SIZE-7) {
-		this->x=clamp(this->x,-1,ROOM_SIZE-7);
+	if (this->x<-1 || this->x>LOGICAL_ROOM_SIZE-7) {
+		this->x=clamp(this->x,-1,LOGICAL_ROOM_SIZE-7);
 		this->spd.x=0;
 	}
    
@@ -939,7 +943,7 @@ static void PLAYER_SPAWN_init(OBJ* this) {
 	this->spr=3;
 	this->target.x=this->x;
 	this->target.y=this->y;
-	this->y=ROOM_SIZE;
+	this->y=LOGICAL_ROOM_SIZE;
 	this->spd.y=-4;
 	this->state=0;
 	this->delay=0;
@@ -1266,10 +1270,10 @@ static void FAKE_WALL_update(OBJ* this) {
 		P8sfx(16);
 		//destroy_object(this);
 		init_object(OBJ_SMOKE,this->x,this->y);
-		init_object(OBJ_SMOKE,this->x+TILE_SIZE,this->y);
-		init_object(OBJ_SMOKE,this->x,this->y+TILE_SIZE);
-		init_object(OBJ_SMOKE,this->x+TILE_SIZE,this->y+TILE_SIZE);
-		init_object(OBJ_FRUIT,this->x+TILE_SIZE/2,this->y+TILE_SIZE/2);
+		init_object(OBJ_SMOKE,this->x+LOGICAL_TILE_SIZE,this->y);
+		init_object(OBJ_SMOKE,this->x,this->y+LOGICAL_TILE_SIZE);
+		init_object(OBJ_SMOKE,this->x+LOGICAL_TILE_SIZE,this->y+LOGICAL_TILE_SIZE);
+		init_object(OBJ_FRUIT,this->x+LOGICAL_TILE_SIZE/2,this->y+LOGICAL_TILE_SIZE/2);
 		destroy_object(this); //LEMON: moved here. see PLAYER_update. also returning to avoid modifying removed object
 		return;
 	}
@@ -1277,9 +1281,9 @@ static void FAKE_WALL_update(OBJ* this) {
 }
 static void FAKE_WALL_draw(OBJ* this) {
 	P8spr(64,this->x,this->y,	1,1,false,false);
-	P8spr(65,this->x+TILE_SIZE,this->y,	1,1,false,false);
-	P8spr(80,this->x,this->y+TILE_SIZE,	1,1,false,false);
-	P8spr(81,this->x+TILE_SIZE,this->y+TILE_SIZE,	1,1,false,false);
+	P8spr(65,this->x+LOGICAL_TILE_SIZE,this->y,	1,1,false,false);
+	P8spr(80,this->x,this->y+LOGICAL_TILE_SIZE,	1,1,false,false);
+	P8spr(81,this->x+LOGICAL_TILE_SIZE,this->y+LOGICAL_TILE_SIZE,	1,1,false,false);
 }
 
 //key
@@ -1330,8 +1334,8 @@ static void PLATFORM_init(OBJ* this) {
 }
 static void PLATFORM_update(OBJ* this) {
 	this->spd.x=this->dir*0.65;
-	if (this->x<-2*TILE_SIZE) { this->x=ROOM_SIZE;
-	} else if (this->x>ROOM_SIZE) { this->x=-2*TILE_SIZE; }
+	if (this->x<-2*LOGICAL_TILE_SIZE) { this->x=LOGICAL_ROOM_SIZE;
+	} else if (this->x>LOGICAL_ROOM_SIZE) { this->x=-2*LOGICAL_TILE_SIZE; }
 	if (!OBJ_check(this, OBJ_PLAYER,0,0)) {
 		OBJ* hit=OBJ_collide(this, OBJ_PLAYER,0,-1);
 		if (hit!=NULL) {
@@ -1342,7 +1346,7 @@ static void PLATFORM_update(OBJ* this) {
 }
 static void PLATFORM_draw(OBJ* this) {
 	P8spr(11,this->x,this->y-1,	 1,1,false,false);
-	P8spr(12,this->x+TILE_SIZE,this->y-1,   1,1,false,false);
+	P8spr(12,this->x+LOGICAL_TILE_SIZE,this->y-1,   1,1,false,false);
 }
 
 //message
@@ -1358,7 +1362,7 @@ static void MESSAGE_draw(OBJ* this) {
 				P8sfx(35);
 			}
 		}
-		this->off2.x=TILE_SIZE;
+		this->off2.x=LOGICAL_TILE_SIZE;
 		this->off2.y=96;
 		for (int i=0; i<this->index; i++) {
 			if (this->text[i]!='#') {
@@ -1368,7 +1372,7 @@ static void MESSAGE_draw(OBJ* this) {
 				P8print(charstr,this->off2.x,this->off2.y,0);
 				this->off2.x+=5;
 			} else {
-				this->off2.x=TILE_SIZE;
+				this->off2.x=LOGICAL_TILE_SIZE;
 				this->off2.y+=7;
 			}
 		}
@@ -1386,7 +1390,7 @@ static void BIG_CHEST_init(OBJ* this) {
 }
 static void BIG_CHEST_draw(OBJ* this) {
 	if (this->state==0) {
-		OBJ* hit=OBJ_collide(this, OBJ_PLAYER,0,TILE_SIZE);
+		OBJ* hit=OBJ_collide(this, OBJ_PLAYER,0,LOGICAL_TILE_SIZE);
 		if (hit!=NULL && OBJ_is_solid(hit, 0,1)) {
 			P8music(-1,500,7);
 			P8sfx(37);
@@ -1395,12 +1399,12 @@ static void BIG_CHEST_draw(OBJ* this) {
 			hit->spd.y=0;
 			this->state=1;
 			init_object(OBJ_SMOKE,this->x,this->y);
-			init_object(OBJ_SMOKE,this->x+TILE_SIZE,this->y);
+			init_object(OBJ_SMOKE,this->x+LOGICAL_TILE_SIZE,this->y);
 			this->timer=60;
 			this->particle_count = 0;
 		}
 		P8spr(96,this->x,this->y,   1,1,false,false);
-		P8spr(97,this->x+TILE_SIZE,this->y,  1,1,false,false);
+		P8spr(97,this->x+LOGICAL_TILE_SIZE,this->y,  1,1,false,false);
 	} else if (this->state==1) {
 		this->timer-=1;
 		shake=5;
@@ -1409,7 +1413,7 @@ static void BIG_CHEST_draw(OBJ* this) {
 			this->particles[this->particle_count++] = (PARTICLE){
 				.x=1+P8rnd(14),
 				.y=0,
-				.spd=TILE_SIZE+P8rnd(TILE_SIZE),
+				.spd=LOGICAL_TILE_SIZE+P8rnd(LOGICAL_TILE_SIZE),
 				.h=32+P8rnd(32)
 			};
 		}
@@ -1424,11 +1428,11 @@ static void BIG_CHEST_draw(OBJ* this) {
 		for (int i = 0; i < this->particle_count; i++) {
 			PARTICLE* p = &this->particles[i];
 			p->y+=p->spd;
-			P8line(this->x+p->x,this->y+TILE_SIZE-p->y,this->x+p->x,P8min(this->y+TILE_SIZE-p->y+p->h,this->y+TILE_SIZE),7);
+			P8line(this->x+p->x,this->y+LOGICAL_TILE_SIZE-p->y,this->x+p->x,P8min(this->y+LOGICAL_TILE_SIZE-p->y+p->h,this->y+LOGICAL_TILE_SIZE),7);
 		}
 	}
-	P8spr(112,this->x,this->y+TILE_SIZE,   1,1,false,false);
-	P8spr(113,this->x+TILE_SIZE,this->y+TILE_SIZE, 1,1,false,false);
+	P8spr(112,this->x,this->y+LOGICAL_TILE_SIZE,   1,1,false,false);
+	P8spr(113,this->x+LOGICAL_TILE_SIZE,this->y+LOGICAL_TILE_SIZE, 1,1,false,false);
 }
 
 //orb
@@ -1454,7 +1458,7 @@ static void ORB_draw(OBJ* this) {
 	P8spr(102,this->x,this->y,  1,1,false,false);
 	float off=(float)frames/30.f;
 	for (float i=0; i <= 7; i+=1) {
-		P8circfill(this->x+TILE_SIZE/2+P8cos(off+i/8.f)*TILE_SIZE,this->y+TILE_SIZE/2+P8sin(off+i/8.f)*TILE_SIZE,1,7);
+		P8circfill(this->x+LOGICAL_TILE_SIZE/2+P8cos(off+i/8.f)*LOGICAL_TILE_SIZE,this->y+LOGICAL_TILE_SIZE/2+P8sin(off+i/8.f)*LOGICAL_TILE_SIZE,1,7);
 	}
 	if (destroy_self) destroy_object(this);
 }
@@ -1558,7 +1562,7 @@ static OBJ* init_object(OBJTYPE type, float x, float y) {
 
 	obj->x = x;
 	obj->y = y;
-	obj->hitbox = (HITBOX){ .x=0,.y=0,.w=TILE_SIZE,.h=TILE_SIZE };
+	obj->hitbox = (HITBOX){ .x=0,.y=0,.w=LOGICAL_TILE_SIZE,.h=LOGICAL_TILE_SIZE };
 
 	obj->spd = (VEC){.x=0,.y=0};
 	obj->rem = (VEC){.x=0,.y=0};
@@ -1652,15 +1656,15 @@ static void load_room(int x, int y) {
 		for (int ty=0; ty <= 15; ty++) {
 			int tile = P8mget(room.x*16+tx,room.y*16+ty);
 			if (tile==11) {
-				init_object(OBJ_PLATFORM,tx*TILE_SIZE,ty*TILE_SIZE)->dir=-1;
+				init_object(OBJ_PLATFORM,tx*LOGICAL_TILE_SIZE,ty*LOGICAL_TILE_SIZE)->dir=-1;
 				//newcount++;
 			} else if (tile==12) {
-				init_object(OBJ_PLATFORM,tx*TILE_SIZE,ty*TILE_SIZE)->dir=1;
+				init_object(OBJ_PLATFORM,tx*LOGICAL_TILE_SIZE,ty*LOGICAL_TILE_SIZE)->dir=1;
 				//newcount++;
 			} else {
 				for (int type = 0; type < OBJTYPE_COUNT; type++) { //safe since types are ordered starting at 0
 					if (tile == OBJTYPE_prop[type].tile) {
-						init_object((OBJTYPE)type, tx*TILE_SIZE, ty*TILE_SIZE);
+						init_object((OBJTYPE)type, tx*LOGICAL_TILE_SIZE, ty*LOGICAL_TILE_SIZE);
 						//newcount++;
 					}
 				}
@@ -1804,7 +1808,7 @@ void Celeste_P8_draw() {
 	} else if (new_bg) {
 		bg_col=2;
 	}
-	P8rectfill(0,0,ROOM_SIZE,ROOM_SIZE,bg_col);
+	P8rectfill(0,0,LOGICAL_ROOM_SIZE,LOGICAL_ROOM_SIZE,bg_col);
 
 	// clouds
 	if (!is_title()) {
@@ -1812,9 +1816,9 @@ void Celeste_P8_draw() {
 			CLOUD* c = &clouds[i];
 			c->x += c->spd;
 			P8rectfill(c->x,c->y,c->x+c->w,c->y+4+(1-c->w/64.0)*12,new_bg ? 14 : 1);
-			if (c->x > ROOM_SIZE) {
+			if (c->x > LOGICAL_ROOM_SIZE) {
 				c->x = -c->w;
-				c->y = P8rnd(ROOM_SIZE-TILE_SIZE);
+				c->y = P8rnd(LOGICAL_ROOM_SIZE-LOGICAL_TILE_SIZE);
 			}
 		}
 	}
@@ -1857,9 +1861,9 @@ void Celeste_P8_draw() {
 		p->y += P8sin(p->off);
 		p->off+= P8min(0.05,p->spd/32);
 		P8rectfill(p->x,p->y,p->x+p->s,p->y+p->s,p->c);
-		if (p->x>ROOM_SIZE+4) {
+		if (p->x>LOGICAL_ROOM_SIZE+4) {
 			p->x=-4;
-			p->y=P8rnd(ROOM_SIZE);
+			p->y=P8rnd(LOGICAL_ROOM_SIZE);
 		}
 		p++;
 	}
@@ -1879,10 +1883,10 @@ void Celeste_P8_draw() {
 	}
    
 	// draw outside of the screen for screenshake
-	P8rectfill(-5,-5,-1,ROOM_SIZE+5,0);
-	P8rectfill(-5,-5,ROOM_SIZE+5,-1,0);
-	P8rectfill(-5,ROOM_SIZE,ROOM_SIZE+5,ROOM_SIZE+5,0);
-	P8rectfill(ROOM_SIZE,-5,ROOM_SIZE+5,ROOM_SIZE+5,0);
+	P8rectfill(-5,-5,-1,LOGICAL_ROOM_SIZE+5,0);
+	P8rectfill(-5,-5,LOGICAL_ROOM_SIZE+5,-1,0);
+	P8rectfill(-5,LOGICAL_ROOM_SIZE,LOGICAL_ROOM_SIZE+5,LOGICAL_ROOM_SIZE+5,0);
+	P8rectfill(LOGICAL_ROOM_SIZE,-5,LOGICAL_ROOM_SIZE+5,LOGICAL_ROOM_SIZE+5,0);
    
 	// credits
 	if (is_title()) {
@@ -1901,8 +1905,8 @@ void Celeste_P8_draw() {
 		}
 		if (p!=NULL) {
 			float diff=P8min(24,40-P8abs(p->x+4-64));
-			P8rectfill(0,0,diff,ROOM_SIZE,0);
-			P8rectfill(ROOM_SIZE-diff,0,ROOM_SIZE,ROOM_SIZE,0);
+			P8rectfill(0,0,diff,LOGICAL_ROOM_SIZE,0);
+			P8rectfill(LOGICAL_ROOM_SIZE-diff,0,LOGICAL_ROOM_SIZE,LOGICAL_ROOM_SIZE,0);
 		}
 	}
 }
@@ -1958,8 +1962,8 @@ static bool ice_at(int x,int y,int w,int h) {
 }
 
 static bool tile_flag_at(int x,int y,int w,int h,int flag) {
-	for (int i=(int)P8max(0,P8flr(x/TILE_SIZE)); i <= P8min(15,(x+w-1)/TILE_SIZE); i++) {
-		 for (int j=(int)P8max(0,P8flr(y/TILE_SIZE)); j <= P8min(15,(y+h-1)/TILE_SIZE); j++) {
+	for (int i=(int)P8max(0,P8flr(x/LOGICAL_TILE_SIZE)); i <= P8min(15,(x+w-1)/LOGICAL_TILE_SIZE); i++) {
+		 for (int j=(int)P8max(0,P8flr(y/LOGICAL_TILE_SIZE)); j <= P8min(15,(y+h-1)/LOGICAL_TILE_SIZE); j++) {
 			if (P8fget(tile_at(i,j),flag)) {
 				return true;
 			}
@@ -1973,16 +1977,16 @@ static int tile_at(int x,int y) {
 }
 
 static bool spikes_at(float x,float y,int w,int h,float xspd,float yspd) {
-	for (int i=(int)P8max(0,P8flr(x/TILE_SIZE)); i <= P8min(15,(x+w-1)/TILE_SIZE); i++) {
-		for (int j=(int)P8max(0,P8flr(y/TILE_SIZE)); j <= P8min(15,(y+h-1)/TILE_SIZE); j++) {
+	for (int i=(int)P8max(0,P8flr(x/LOGICAL_TILE_SIZE)); i <= P8min(15,(x+w-1)/LOGICAL_TILE_SIZE); i++) {
+		for (int j=(int)P8max(0,P8flr(y/LOGICAL_TILE_SIZE)); j <= P8min(15,(y+h-1)/LOGICAL_TILE_SIZE); j++) {
 			int tile=tile_at(i,j);
-			if (tile==17 && (P8modulo(y+h-1, TILE_SIZE)>=TILE_SIZE-2 || y+h==j*TILE_SIZE+TILE_SIZE) && yspd>=0) {
+			if (tile==17 && (P8modulo(y+h-1, LOGICAL_TILE_SIZE)>=LOGICAL_TILE_SIZE-2 || y+h==j*LOGICAL_TILE_SIZE+LOGICAL_TILE_SIZE) && yspd>=0) {
 				return true;
-			} else if (tile==27 && P8modulo(y, TILE_SIZE)<=2 && yspd<=0) {
+			} else if (tile==27 && P8modulo(y, LOGICAL_TILE_SIZE)<=2 && yspd<=0) {
 				return true;
-			} else if (tile==43 && P8modulo(x, TILE_SIZE)<=2 && xspd<=0) {
+			} else if (tile==43 && P8modulo(x, LOGICAL_TILE_SIZE)<=2 && xspd<=0) {
 				return true;
-			} else if (tile==59 && (P8modulo(x+w-1, TILE_SIZE)>=TILE_SIZE-2 || x+w==i*TILE_SIZE+TILE_SIZE) && xspd>=0) {
+			} else if (tile==59 && (P8modulo(x+w-1, LOGICAL_TILE_SIZE)>=LOGICAL_TILE_SIZE-2 || x+w==i*LOGICAL_TILE_SIZE+LOGICAL_TILE_SIZE) && xspd>=0) {
 				return true;
 			}
 		}
