@@ -96,27 +96,40 @@ static char* GetDataPath(char* path, int n, const char* fname) {
 }
 
 static Uint32 getpixel(SDL_Surface *surface, int x, int y) {
-	int bpp = surface->format->BytesPerPixel;
-	/* Here p is the address to the pixel we want to retrieve */
-	Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+    int bpp = surface->format->BitsPerPixel;
+    if (bpp == 1 && surface->format->format == SDL_PIXELFORMAT_INDEX1MSB) {
+        Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x / 8;
+        return (*p >> (7 - (x & 7))) & 1;
+    }
+    if (bpp == 4) {
+        Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x / 2;
 
-	switch(bpp) {
-		case 1:
-			return *p;
+        if (surface->format->format == SDL_PIXELFORMAT_INDEX4MSB)
+            return (x & 1) ? (*p & 0x0f) : (*p >> 4);
+        else
+            return (x & 1) ? (*p >> 4) : (*p & 0x0f);
+    }
+    int bytes_per_pixel = surface->format->BytesPerPixel;
+    Uint8 *p = (Uint8 *)surface->pixels +
+               y * surface->pitch +
+               x * bytes_per_pixel;
 
-		case 2:
-			return *(Uint16 *)p;
+    switch (bytes_per_pixel) {
+        case 1:
+            return *p;
 
-		case 3:
-			if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
-				return p[0] << 16 | p[1] << 8 | p[2];
-			else
-				return p[0] | p[1] << 8 | p[2] << 16;
+        case 2:
+            return *(Uint16 *)p;
 
-		case 4:
-			return *(Uint32 *)p;
-	}
-	return 0;
+        case 3:
+            if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+                return p[0] << 16 | p[1] << 8 | p[2];
+            else
+                return p[0] | p[1] << 8 | p[2] << 16;
+        case 4:
+            return *(Uint32 *)p;
+    }
+    return 0;
 }
 
 static void loadbmpscale(char* filename, SDL_Surface** s) {
