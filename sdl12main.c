@@ -335,8 +335,8 @@ static Uint8 *n3ds_get_fake_key_state(int *numkeys) {
 static void draw_bottom_map(void) {
 	if (!bottom_map || show_console) return;
 
-	int width, height;
-	Uint8* framebuffer = gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &width, &height);
+	u16 width, height;
+	u8* framebuffer = gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &width, &height);
 	if (!framebuffer) return;
 
 	if (SDL_MUSTLOCK(bottom_map) && SDL_LockSurface(bottom_map) < 0) return;
