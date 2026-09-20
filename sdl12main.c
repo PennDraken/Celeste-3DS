@@ -97,22 +97,28 @@ static char* GetDataPath(char* path, int n, const char* fname) {
 
 static Uint32 getpixel(SDL_Surface *surface, int x, int y) {
     int bpp = surface->format->BitsPerPixel;
-    if (bpp == 1 && surface->format->format == SDL_PIXELFORMAT_INDEX1MSB) {
-        Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x / 8;
+
+    if (bpp == 1) {
+        Uint8 *p = (Uint8 *)surface->pixels
+                 + y * surface->pitch
+                 + x / 8;
+
         return (*p >> (7 - (x & 7))) & 1;
     }
-    if (bpp == 4) {
-        Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x / 2;
 
-        if (surface->format->format == SDL_PIXELFORMAT_INDEX4MSB)
-            return (x & 1) ? (*p & 0x0f) : (*p >> 4);
-        else
-            return (x & 1) ? (*p >> 4) : (*p & 0x0f);
+    if (bpp == 4) {
+        Uint8 *p = (Uint8 *)surface->pixels
+                 + y * surface->pitch
+                 + x / 2;
+
+        return (x & 1) ? (*p & 0x0f) : (*p >> 4);
     }
+
     int bytes_per_pixel = surface->format->BytesPerPixel;
-    Uint8 *p = (Uint8 *)surface->pixels +
-               y * surface->pitch +
-               x * bytes_per_pixel;
+
+    Uint8 *p = (Uint8 *)surface->pixels
+             + y * surface->pitch
+             + x * bytes_per_pixel;
 
     switch (bytes_per_pixel) {
         case 1:
@@ -126,10 +132,13 @@ static Uint32 getpixel(SDL_Surface *surface, int x, int y) {
                 return p[0] << 16 | p[1] << 8 | p[2];
             else
                 return p[0] | p[1] << 8 | p[2] << 16;
+
         case 4:
             return *(Uint32 *)p;
+
+        default:
+            return 0;
     }
-    return 0;
 }
 
 static unsigned char getpaletteindex(SDL_Surface *surface, Uint32 pixel) {
@@ -186,9 +195,9 @@ static void loadbmpscale(char* filename, SDL_Surface** s) {
 #define LOGDONE() printf("done\n")
 
 #define FONT_TILE_SIZE 15
-#define FONT_GLYPH_W 6
+#define FONT_GLYPH_W 7
 #define FONT_GLYPH_H 9
-#define FONT_ADVANCE_X 6
+#define FONT_ADVANCE_X 7
 
 static void LoadData(void) {
 	LOGLOAD("gfx.bmp");
