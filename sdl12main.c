@@ -132,6 +132,26 @@ static Uint32 getpixel(SDL_Surface *surface, int x, int y) {
     return 0;
 }
 
+static unsigned char getpaletteindex(SDL_Surface *surface, Uint32 pixel) {
+	Uint8 r, g, b;
+	SDL_GetRGB(pixel, surface->format, &r, &g, &b);
+
+	int best_index = 0;
+	int best_distance = 3 * 255 * 255 + 1;
+	for (int i = 0; i < 16; i++) {
+		int dr = (int)r - base_palette[i].r;
+		int dg = (int)g - base_palette[i].g;
+		int db = (int)b - base_palette[i].b;
+		int distance = dr*dr + dg*dg + db*db;
+		if (distance < best_distance) {
+			best_index = i;
+			best_distance = distance;
+		}
+	}
+
+	return best_index;
+}
+
 static void loadbmpscale(char* filename, SDL_Surface** s) {
 	SDL_Surface* surf = *s;
 	if (surf) SDL_FreeSurface(surf), surf = *s = NULL;
@@ -150,9 +170,9 @@ static void loadbmpscale(char* filename, SDL_Surface** s) {
 	unsigned char* data = surf->pixels;
 	/*memcpy((_S)->format->palette->colors, base_palette, 16*sizeof(SDL_Color));*/
 	for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {
-		unsigned char pix = getpixel(bmp, x, y);
+		unsigned char pix = getpaletteindex(bmp, getpixel(bmp, x, y));
 		for (int i = 0; i < scale; i++) for (int j = 0; j < scale; j++) {
-			data[x*scale+i + (y*scale+j)*w*scale] = pix;
+			data[x*scale+i + (y*scale+j)*surf->pitch] = pix;
 		}
 	}
 	SDL_FreeSurface(bmp);
@@ -679,20 +699,31 @@ static inline void Xblit(SDL_Surface* src, SDL_Rect* srcrect, SDL_Surface* dst, 
 			h -= dy;
 	}
 
-	if (w && h) {
+	if (w > 0 && h > 0) {
+		int src_locked = SDL_MUSTLOCK(src) && SDL_LockSurface(src) == 0;
+		int dst_locked = SDL_MUSTLOCK(dst) && SDL_LockSurface(dst) == 0;
+		if ((SDL_MUSTLOCK(src) && !src_locked) || (SDL_MUSTLOCK(dst) && !dst_locked)) {
+			if (src_locked) SDL_UnlockSurface(src);
+			if (dst_locked) SDL_UnlockSurface(dst);
+			return;
+		}
 		unsigned char* srcpix = src->pixels;
 		int srcpitch = src->pitch;
+		int dstpitch = dst->pitch / sizeof(Uint32);
 		Uint32* dstpix = dst->pixels;
     #define _blitter(dp, xflip) do                                                                  \
     for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {                                       \
-      unsigned char p = srcpix[!xflip ? srcx+x+(srcy+y)*srcpitch : srcx+(w-x-1)+(srcy+y)*srcpitch]; \
-      if (p) dstpix[dstrect->x+x + (dstrect->y+y)*dst->w] = getcolor(dp);                           \
+      int source_y = srcy + (!flipy ? y : h-y-1);                                                    \
+      unsigned char p = srcpix[!xflip ? srcx+x+source_y*srcpitch : srcx+(w-x-1)+source_y*srcpitch];  \
+      if (p) dstpix[dstrect->x+x + (dstrect->y+y)*dstpitch] = getcolor(dp);                          \
     } while(0)
 		if (color && flipx) _blitter(color, 1);
 		else if (!color && flipx) _blitter(p, 1);
 		else if (color && !flipx) _blitter(color, 0);
 		else if (!color && !flipx) _blitter(p, 0);
 		#undef _blitter
+		if (src_locked) SDL_UnlockSurface(src);
+		if (dst_locked) SDL_UnlockSurface(dst);
 	}
 }
 
