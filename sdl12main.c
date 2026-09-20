@@ -21,7 +21,7 @@ static void ErrLog(char* fmt, ...) {
 	/*FILE* f = fopen("sdmc:/ccleste.txt", "a");
 	if (!f) return;
 	fprintf(f, "%li \t", (long int)time(NULL));*/
-	FILE* f = stdout; //bottom screen console
+	FILE* f = stdout; //shown on the bottom screen when the console is enabled
 #else
 	FILE* f = stderr;
 #endif
@@ -37,6 +37,9 @@ static void ErrLog(char* fmt, ...) {
 SDL_Surface* screen = NULL;
 SDL_Surface* gfx = NULL;
 SDL_Surface* font = NULL;
+#ifdef _3DS
+SDL_Surface* bottom_map = NULL;
+#endif
 Mix_Chunk* snd[64] = {NULL};
 Mix_Music* mus[6] = {NULL};
 
@@ -199,6 +202,15 @@ static void LoadData(void) {
 	loadbmpscale("font_large.bmp", &font);
 	LOGDONE();
 
+#ifdef _3DS
+	char map_path[4096];
+	GetDataPath(map_path, sizeof map_path, "map.bmp");
+	bottom_map = SDL_LoadBMP(map_path);
+	if (!bottom_map) {
+		ErrLog("error loading map.bmp: %s\n", SDL_GetError());
+	}
+#endif
+
 	static const char sndids[] = {0,1,2,3,4,5,6,7,8,9,13,14,15,16,23,35,37,38,40,50,51,54,55};
 	for (int iid = 0; iid < sizeof sndids; iid++) {
 		int id = sndids[iid];
@@ -273,6 +285,9 @@ static _Bool running = 1;
 static void* initial_game_state = NULL;
 static void* game_state = NULL;
 static Mix_Music* game_state_music = NULL;
+#ifdef _3DS
+static _Bool show_console = 0;
+#endif
 static void mainLoop(void);
 static FILE* TAS = NULL;
 
@@ -307,6 +322,36 @@ static Uint8 *n3ds_get_fake_key_state(int *numkeys) {
 
 	return st;
 }
+
+static void draw_bottom_map(void) {
+	if (!bottom_map || show_console) return;
+
+	int width, height;
+	Uint8* framebuffer = gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &width, &height);
+	if (!framebuffer) return;
+
+	if (SDL_MUSTLOCK(bottom_map) && SDL_LockSurface(bottom_map) < 0) return;
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			Uint8 r = 0, g = 0, b = 0;
+			if (x < bottom_map->w && y < bottom_map->h) {
+				SDL_GetRGB(getpixel(bottom_map, x, y), bottom_map->format, &r, &g, &b);
+			}
+
+			// The 3DS framebuffer is BGR8, rotated 90 degrees in memory.
+			int offset = 3 * (x * height + (height - y - 1));
+			framebuffer[offset + 0] = b;
+			framebuffer[offset + 1] = g;
+			framebuffer[offset + 2] = r;
+		}
+	}
+	if (SDL_MUSTLOCK(bottom_map)) SDL_UnlockSurface(bottom_map);
+}
+
+static void toggle_console(void) {
+	show_console = !show_console;
+	if (show_console) consoleInit(GFX_BOTTOM, NULL);
+}
 #endif
 
 int main(int argc, char** argv) {
@@ -319,7 +364,7 @@ int main(int argc, char** argv) {
 #ifdef _3DS
 	fsInit();
 	romfsInit();
-	videoflag = SDL_DOUBLEBUF | SDL_HWSURFACE | SDL_CONSOLEBOTTOM | SDL_TOPSCR;
+	videoflag = SDL_DOUBLEBUF | SDL_HWSURFACE | SDL_TOPSCR;
 	SDL_N3DSKeyBind(KEY_A, SDLK_z);
 	SDL_N3DSKeyBind(KEY_X|KEY_B, SDLK_x);
 	SDL_N3DSKeyBind(KEY_CPAD_UP|KEY_CSTICK_UP|KEY_DUP, SDLK_UP);
@@ -327,6 +372,7 @@ int main(int argc, char** argv) {
 	SDL_N3DSKeyBind(KEY_CPAD_LEFT|KEY_CSTICK_LEFT|KEY_DLEFT, SDLK_LEFT);
 	SDL_N3DSKeyBind(KEY_CPAD_RIGHT|KEY_CSTICK_RIGHT|KEY_DRIGHT, SDLK_RIGHT);
 	SDL_N3DSKeyBind(KEY_SELECT, SDLK_F11); //to switch full screen
+	SDL_N3DSKeyBind(KEY_TOUCH, SDLK_F12); //toggle bottom screen console
 	SDL_N3DSKeyBind(KEY_START, SDLK_ESCAPE); //to pause
 	
 	SDL_N3DSKeyBind(KEY_Y, SDLK_LSHIFT); //hold to reset / load/save state
@@ -432,6 +478,9 @@ int main(int argc, char** argv) {
 
 	SDL_FreeSurface(gfx);
 	SDL_FreeSurface(font);
+#ifdef _3DS
+	SDL_FreeSurface(bottom_map);
+#endif
 	for (int i = 0; i < (sizeof snd)/(sizeof *snd); i++) {
 		if (snd[i]) Mix_FreeChunk(snd[i]);
 	}
@@ -532,6 +581,12 @@ static void mainLoop(void) {
 				}
 				screen = SDL_GetVideoSurface();
 				break;
+			} else if (ev.key.keysym.sym == SDLK_F12) {
+#ifdef _3DS
+				toggle_console();
+				OSDset("bottom screen: %s", show_console ? "console" : "map");
+#endif
+				break;
 			} else if (0 && ev.key.keysym.sym == SDLK_5) {
 				Celeste_P8__DEBUG();
 				break;
@@ -600,6 +655,9 @@ static void mainLoop(void) {
 	}
 	OSDdraw();
 
+#ifdef _3DS
+	draw_bottom_map();
+#endif
 	SDL_Flip(screen);
 
 #ifdef EMSCRIPTEN //emscripten_set_main_loop already sets the fps

@@ -46,6 +46,8 @@ devkitARM
 |Hold F9           |Hold SELECT+START+Y| Reset              |
 |F11               |SELECT             | Fullscreen         |
 
+On 3DS, the bottom screen shows `map.bmp` by default. Touch the bottom screen to toggle between the map and the console.
+
 Controller input is also supported on PC (SDL2 ver) and web version. The controller must be plugged in when opening the game.
 The default mappings are: jump with A and dash with B (xbox360 controller layout), move with d-pad or the left stick, pause with start, save/load state with left/right shoulder, exit with guide (logo button).
 You can change these mappings by modifying the `ccleste-input-cfg.txt` file that will be created when you first run the game.
