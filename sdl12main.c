@@ -40,11 +40,12 @@ SDL_Surface* font = NULL;
 Mix_Chunk* snd[64] = {NULL};
 Mix_Music* mus[6] = {NULL};
 
-#define PICO8_W 128
-#define PICO8_H 128
+#define PICO8_W 240
+#define PICO8_H 240
+#define TILE_SIZE 15
 
 #ifdef _3DS
-static const int scale = 2;
+static const int scale = 1;
 #else
 static int scale = 4;
 #endif
