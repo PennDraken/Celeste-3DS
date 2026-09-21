@@ -403,6 +403,12 @@ int Celeste_P8_get_level_index(void) {
 	return level_index();
 }
 
+void Celeste_P8_load_level(int level) {
+	if (level < 0) level = 0;
+	if (level > 30) level = 30;
+	load_room(level % MAP_ROOM_COLUMNS, level / MAP_ROOM_COLUMNS);
+}
+
 static bool is_title() {
 	return level_index()==31;
 }
@@ -418,7 +424,7 @@ static CLOUD clouds[17];
 static void PRELUDE_initclouds() {
 	for (int i=0; i<=16; i++) {
 		clouds[i] = (CLOUD){
-			.x=P8rnd(LOGICAL_ROOM_SIZE),
+			.x=LOGICAL_WIDE_SCREEN_LEFT+P8rnd(LOGICAL_WIDE_SCREEN_RIGHT-LOGICAL_WIDE_SCREEN_LEFT),
 			.y=P8rnd(LOGICAL_ROOM_SIZE),
 			.spd=1+P8rnd(4),
 			.w=32+P8rnd(32),
@@ -438,7 +444,7 @@ static PARTICLE dead_particles[8];
 static void PRELUDE_initparticles() {
 	for (int i=0; i<=24; i++) {
 		particles[i] = (PARTICLE){
-			.x=P8rnd(LOGICAL_ROOM_SIZE),
+			.x=LOGICAL_WIDE_SCREEN_LEFT+P8rnd(LOGICAL_WIDE_SCREEN_RIGHT-LOGICAL_WIDE_SCREEN_LEFT),
 			.y=P8rnd(LOGICAL_ROOM_SIZE),
 			.s=0+P8flr(P8rnd(5)/4),
 			.spd=0.25f+P8rnd(5),
@@ -1820,8 +1826,8 @@ void Celeste_P8_draw() {
 			CLOUD* c = &clouds[i];
 			c->x += c->spd;
 			P8rectfill(c->x,c->y,c->x+c->w,c->y+4+(1-c->w/64.0)*12,new_bg ? 14 : 1);
-			if (c->x > LOGICAL_ROOM_SIZE) {
-				c->x = -c->w;
+			if (c->x > LOGICAL_WIDE_SCREEN_RIGHT) {
+				c->x = LOGICAL_WIDE_SCREEN_LEFT-c->w;
 				c->y = P8rnd(LOGICAL_ROOM_SIZE-LOGICAL_TILE_SIZE);
 			}
 		}
@@ -1865,8 +1871,8 @@ void Celeste_P8_draw() {
 		p->y += P8sin(p->off);
 		p->off+= P8min(0.05,p->spd/32);
 		P8rectfill(p->x,p->y,p->x+p->s,p->y+p->s,p->c);
-		if (p->x>LOGICAL_ROOM_SIZE+4) {
-			p->x=-4;
+		if (p->x>LOGICAL_WIDE_SCREEN_RIGHT+4) {
+			p->x=LOGICAL_WIDE_SCREEN_LEFT-4;
 			p->y=P8rnd(LOGICAL_ROOM_SIZE);
 		}
 		p++;

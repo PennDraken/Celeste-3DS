@@ -26,6 +26,10 @@ typedef int (*Celeste_P8_cb_func_t) (CELESTE_P8_CALLBACK_TYPE calltype, ...);
 #define TILE_SIZE 15
 #define LOGICAL_ROOM_SIZE (ROOM_TILE_COUNT * LOGICAL_TILE_SIZE)
 #define SCREEN_SIZE (ROOM_TILE_COUNT * TILE_SIZE)
+#define WIDE_SCREEN_SIZE 400
+#define LOGICAL_WIDE_SCREEN_MARGIN (((WIDE_SCREEN_SIZE - SCREEN_SIZE) * LOGICAL_TILE_SIZE + 2*TILE_SIZE - 1) / (2*TILE_SIZE))
+#define LOGICAL_WIDE_SCREEN_LEFT (-LOGICAL_WIDE_SCREEN_MARGIN)
+#define LOGICAL_WIDE_SCREEN_RIGHT (LOGICAL_ROOM_SIZE + LOGICAL_WIDE_SCREEN_MARGIN)
 
 extern void Celeste_P8_set_call_func(Celeste_P8_cb_func_t func);
 extern void Celeste_P8_set_rndseed(unsigned seed);
@@ -33,6 +37,7 @@ extern void Celeste_P8_init(void);
 extern void Celeste_P8_update(void);
 extern void Celeste_P8_draw(void);
 extern int Celeste_P8_get_level_index(void);
+extern void Celeste_P8_load_level(int level);
 
 extern void Celeste_P8__DEBUG(void); //debug functionality
 

@@ -39,11 +39,12 @@ SDL_Surface* gfx = NULL;
 SDL_Surface* font = NULL;
 #ifdef _3DS
 SDL_Surface* bottom_map = NULL;
+SDL_Surface* bottom_player_sprite = NULL;
 #endif
 Mix_Chunk* snd[64] = {NULL};
 Mix_Music* mus[6] = {NULL};
 
-#define PICO8_W 400
+#define PICO8_W WIDE_SCREEN_SIZE
 #define PICO8_H SCREEN_SIZE
 #define VIEWPORT_X ((PICO8_W - SCREEN_SIZE) / 2)
 #define MAP_SIDE_TILE_COUNT ((VIEWPORT_X + TILE_SIZE - 1) / TILE_SIZE)
@@ -226,6 +227,10 @@ static void LoadData(void) {
 	if (!bottom_map) {
 		ErrLog("error loading map.bmp: %s\n", SDL_GetError());
 	}
+
+	LOGLOAD("player_sprite.bmp");
+	loadbmpscale("player_sprite.bmp", &bottom_player_sprite);
+	LOGDONE();
 #endif
 
 	static const char sndids[] = {0,1,2,3,4,5,6,7,8,9,13,14,15,16,23,35,37,38,40,50,51,54,55};
@@ -352,12 +357,6 @@ static const int map_level_points[][2] = {
 };
 #define MAP_LEVEL_POINT_COUNT ((int)((sizeof map_level_points)/(sizeof *map_level_points)))
 
-//circle of radius 2 (pico-8 style), with the top left of its bounding box at x,y
-static void draw_map_point(SDL_Surface* dst, int x, int y, Uint32 col) {
-	SDL_FillRect(dst, &(SDL_Rect){x, y+1, 5, 3}, col);
-	SDL_FillRect(dst, &(SDL_Rect){x+1, y, 3, 5}, col);
-}
-
 static void draw_bottom_map(void) {
 	if (!bottom_map || show_console) return;
 
@@ -370,10 +369,9 @@ static void draw_bottom_map(void) {
 	{
 		int level = Celeste_P8_get_level_index();
 		if (level >= MAP_LEVEL_POINT_COUNT) level = -1; //title screen
-		SDL_Color c = base_palette[11]; //lime
-		Uint32 col = SDL_MapRGB(bottom_screen->format, c.r, c.g, c.b);
-		for (int i = 0; i <= level; i++) {
-			draw_map_point(bottom_screen, map_level_points[i][0], map_level_points[i][1], col);
+		if (level >= 0 && bottom_player_sprite) {
+			SDL_Rect dst = {map_level_points[level][0] - 2, map_level_points[level][1] - 10, 0, 0};
+			SDL_CHECK(SDL_BlitSurface(bottom_player_sprite, NULL, bottom_screen, &dst) == 0);
 		}
 	}
 
@@ -384,6 +382,15 @@ static void draw_bottom_map(void) {
 	screen = SDL_SetVideoMode(PICO8_W*scale, PICO8_H*scale, 32,
 		SDL_DOUBLEBUF | SDL_HWSURFACE | SDL_TOPSCR);
 	SDL_CHECK(screen != NULL);
+}
+
+static int get_level_from_touch(int x, int y) {
+	for (int i = 0; i < MAP_LEVEL_POINT_COUNT; i++) {
+		int dx = x - map_level_points[i][0];
+		int dy = y - map_level_points[i][1];
+		if (dx*dx + dy*dy <= 40) return i;
+	}
+	return -1;
 }
 
 static void toggle_console(void) {
@@ -411,7 +418,6 @@ int main(int argc, char** argv) {
 	SDL_N3DSKeyBind(KEY_CPAD_LEFT|KEY_CSTICK_LEFT|KEY_DLEFT, SDLK_LEFT);
 	SDL_N3DSKeyBind(KEY_CPAD_RIGHT|KEY_CSTICK_RIGHT|KEY_DRIGHT, SDLK_RIGHT);
 	SDL_N3DSKeyBind(KEY_SELECT, SDLK_F11); //to switch full screen
-	SDL_N3DSKeyBind(KEY_TOUCH, SDLK_F12); //toggle bottom screen console
 	SDL_N3DSKeyBind(KEY_START, SDLK_ESCAPE); //to pause
 	
 	SDL_N3DSKeyBind(KEY_Y, SDLK_LSHIFT); //hold to reset / load/save state
@@ -549,6 +555,28 @@ static void ReadGamepadInput(Uint16* out_buttons);
 
 static void mainLoop(void) {
 	const Uint8* kbstate = SDL_GetKeyState(NULL);
+
+#ifdef _3DS
+	static _Bool touch_down = 0;
+	if (hidKeysHeld() & KEY_TOUCH) {
+		bool should_toggle = (hidKeysHeld() & KEY_L) != 0;
+		if (!touch_down && should_toggle) {
+			toggle_console();
+			OSDset("bottom screen: %s", show_console ? "console" : "map");
+		} else if (!touch_down) {
+			touchPosition touch;
+			hidTouchRead(&touch);
+			int level = get_level_from_touch(touch.px, touch.py);
+			if (level >= 0) {
+				Celeste_P8_load_level(level);
+				OSDset("load level %d", level);
+			}
+		}
+		touch_down = 1;
+	} else {
+		touch_down = 0;
+	}
+#endif
 		
 	static int reset_input_timer = 0;
 	//hold F9 (select+start+y) to reset
@@ -1082,7 +1110,7 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 							dstrc.w = dstrc.h = 8;
 						}
 
-						Xblit(gfx, &srcrc, screen, &dstrc, 0, 0, 0);
+						Xblit(gfx, &srcrc, screen, &dstrc, -1, 0, 0);
 					}
 				}
 			}
