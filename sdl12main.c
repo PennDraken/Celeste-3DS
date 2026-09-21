@@ -332,34 +332,55 @@ static Uint8 *n3ds_get_fake_key_state(int *numkeys) {
 	return st;
 }
 
+//position on the minimap of each level, indexed by level index
+static const int map_level_points[][2] = {
+	{90, 213}, {163, 204}, {177, 196}, {219, 188}, {184, 174}, {168, 167},
+	{141, 170}, {118, 155}, {132, 142}, {136, 129}, {158, 128}, {186, 123},
+	{210, 118}, {231, 120}, {253, 112}, {230, 108}, {236, 101}, {240, 96},
+	{228, 86}, {213, 90}, {204, 87}, {215, 80}, {205, 78}, {182, 81},
+	{172, 71}, {150, 64}, {151, 55}, {167, 50}, {181, 43}, {164, 30},
+	{176, 20},
+};
+#define MAP_LEVEL_POINT_COUNT ((int)((sizeof map_level_points)/(sizeof *map_level_points)))
+
+//circle of radius 2 (pico-8 style), with the top left of its bounding box at x,y
+static void draw_map_point(SDL_Surface* dst, int x, int y, Uint32 col) {
+	SDL_FillRect(dst, &(SDL_Rect){x, y+1, 5, 3}, col);
+	SDL_FillRect(dst, &(SDL_Rect){x+1, y, 3, 5}, col);
+}
+
 static void draw_bottom_map(void) {
 	if (!bottom_map || show_console) return;
 
-	u16 width, height;
-	u8* framebuffer = gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &width, &height);
-	if (!framebuffer) return;
+	SDL_Surface* bottom_screen = SDL_SetVideoMode(bottom_map->w, bottom_map->h, 32,
+		SDL_DOUBLEBUF | SDL_HWSURFACE | SDL_BOTTOMSCR);
+	SDL_CHECK(bottom_screen != NULL);
+	SDL_CHECK(SDL_FillRect(bottom_screen, NULL, 0) == 0);
+	SDL_CHECK(SDL_BlitSurface(bottom_map, NULL, bottom_screen, NULL) == 0);
 
-	if (SDL_MUSTLOCK(bottom_map) && SDL_LockSurface(bottom_map) < 0) return;
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
-			Uint8 r = 0, g = 0, b = 0;
-			if (x < bottom_map->w && y < bottom_map->h) {
-				SDL_GetRGB(getpixel(bottom_map, x, y), bottom_map->format, &r, &g, &b);
-			}
-
-			// The 3DS framebuffer is BGR8, rotated 90 degrees in memory.
-			int offset = 3 * (x * height + (height - y - 1));
-			framebuffer[offset + 0] = b;
-			framebuffer[offset + 1] = g;
-			framebuffer[offset + 2] = r;
+	{
+		int level = Celeste_P8_get_level_index();
+		if (level >= MAP_LEVEL_POINT_COUNT) level = -1; //title screen
+		SDL_Color c = base_palette[11]; //lime
+		Uint32 col = SDL_MapRGB(bottom_screen->format, c.r, c.g, c.b);
+		for (int i = 0; i <= level; i++) {
+			draw_map_point(bottom_screen, map_level_points[i][0], map_level_points[i][1], col);
 		}
 	}
-	if (SDL_MUSTLOCK(bottom_map)) SDL_UnlockSurface(bottom_map);
+
+	SDL_CHECK(SDL_Flip(bottom_screen) == 0);
+	gspWaitForVBlank();
+	gspWaitForVBlank();
+
+	screen = SDL_SetVideoMode(PICO8_W*scale, PICO8_H*scale, 32,
+		SDL_DOUBLEBUF | SDL_HWSURFACE | SDL_TOPSCR);
+	SDL_CHECK(screen != NULL);
 }
 
 static void toggle_console(void) {
 	show_console = !show_console;
 	if (show_console) consoleInit(GFX_BOTTOM, NULL);
+	else draw_bottom_map();
 }
 #endif
 
@@ -443,6 +464,9 @@ int main(int argc, char** argv) {
 	} skip_load:
 
 	LoadData();
+#ifdef _3DS
+	draw_bottom_map();
+#endif
 
 	int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...);
 	Celeste_P8_set_call_func(pico8emu);
@@ -652,6 +676,17 @@ static void mainLoop(void) {
 		} else buttons_state = 0;
 	}
 
+#ifdef _3DS
+	{ //only refresh the minimap when a new level has been loaded
+		static int last_drawn_level = -1;
+		int level = Celeste_P8_get_level_index();
+		if (level != last_drawn_level) {
+			last_drawn_level = level;
+			draw_bottom_map();
+		}
+	}
+#endif
+
 	if (paused) {
 		const int x0 = PICO8_W/2-3*4, y0 = 8;
 
@@ -664,9 +699,6 @@ static void mainLoop(void) {
 	}
 	OSDdraw();
 
-#ifdef _3DS
-	draw_bottom_map();
-#endif
 	SDL_Flip(screen);
 
 #ifdef EMSCRIPTEN //emscripten_set_main_loop already sets the fps
