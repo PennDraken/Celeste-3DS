@@ -314,6 +314,8 @@ static int deaths, max_djump;
 static bool start_game;
 static int start_game_flash;
 
+static const int double_jump_unlock_level = 21;
+
 enum {
   k_left  = 0,
   k_right = 1,
@@ -1660,6 +1662,7 @@ static void load_room(int x, int y) {
 	//current room
 	room.x = x;
 	room.y = y;
+	max_djump = level_index() > double_jump_unlock_level ? 2 : 1;
 
 	// entities
 	for (int tx=0; tx <= 15; tx++) {
