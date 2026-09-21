@@ -73,16 +73,22 @@ static const SDL_Color base_palette[16] = {
 	{0xff, 0xcc, 0xaa}
 };
 static SDL_Color palette[16];
+static Uint32 mapped_palette[16];
 
-static inline Uint32 getcolor(char idx) {
-	SDL_Color c = palette[idx%16];
-	return SDL_MapRGB(screen->format, c.r,c.g,c.b);
+static void update_mapped_palette(int idx) {
+	SDL_Color c = palette[idx];
+	mapped_palette[idx] = SDL_MapRGB(screen->format, c.r,c.g,c.b);
+}
+
+static inline Uint32 getcolor(unsigned char idx) {
+	return mapped_palette[idx % 16];
 }
 
 static void ResetPalette(void) {
 	//SDL_SetPalette(surf, SDL_PHYSPAL|SDL_LOGPAL, (SDL_Color*)base_palette, 0, 16);
 	//memcpy(screen->format->palette->colors, base_palette, 16*sizeof(SDL_Color));
 	memcpy(palette, base_palette, sizeof palette);
+	for (int i = 0; i < 16; i++) update_mapped_palette(i);
 }
 
 static char* GetDataPath(char* path, int n, const char* fname) {
@@ -933,6 +939,7 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 			if (a >= 0 && a < 16 && b >= 0 && b < 16) {
 				//swap palette colors
 				palette[a] = base_palette[b];
+				update_mapped_palette(a);
 			}
 		} break;
 		case CELESTE_P8_PAL_RESET: { //pal()

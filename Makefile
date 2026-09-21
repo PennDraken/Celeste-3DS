@@ -35,7 +35,7 @@ endif
 
 all: $(OUT)
 
-$(OUT): sdl12main.c $(CELESTE_OBJ) celeste.h sdl20compat.inc.c
+$(OUT): sdl12main.c $(CELESTE_OBJ) celeste.h sdl20compat.inc.c tilemap.h
 	$(CC) $(CFLAGS) sdl12main.c $(CELESTE_OBJ) -o $(OUT) $(LDFLAGS)
 
 $(CELESTE_OBJ): celeste.c celeste.h
