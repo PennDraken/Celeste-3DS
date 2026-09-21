@@ -829,10 +829,10 @@ static inline void Xblit(SDL_Surface* src, SDL_Rect* srcrect, SDL_Surface* dst, 
       unsigned char p = srcpix[!xflip ? srcx+x+source_y*srcpitch : srcx+(w-x-1)+source_y*srcpitch];  \
       if (p) dstpix[dstrect->x+x + (dstrect->y+y)*dstpitch] = getcolor(dp);                          \
     } while(0)
-		if (color && flipx) _blitter(color, 1);
-		else if (!color && flipx) _blitter(p, 1);
-		else if (color && !flipx) _blitter(color, 0);
-		else if (!color && !flipx) _blitter(p, 0);
+		if (color >= 0 && flipx) _blitter(color, 1);
+		else if (color < 0 && flipx) _blitter(p, 1);
+		else if (color >= 0 && !flipx) _blitter(color, 0);
+		else if (color < 0 && !flipx) _blitter(p, 0);
 		#undef _blitter
 		if (src_locked) SDL_UnlockSurface(src);
 		if (dst_locked) SDL_UnlockSurface(dst);
@@ -919,7 +919,7 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 					(VIEWPORT_X + x - camera_x)*scale, (y - camera_y)*scale,
 					scale, scale
 				};
-				Xblit(gfx, &srcrc, screen, &dstrc, 0,flipx,flipy);
+				Xblit(gfx, &srcrc, screen, &dstrc, -1,flipx,flipy);
 			}
 		} break;
 		case CELESTE_P8_BTN: { //btn(b)
