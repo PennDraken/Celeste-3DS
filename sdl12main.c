@@ -43,8 +43,10 @@ SDL_Surface* bottom_map = NULL;
 Mix_Chunk* snd[64] = {NULL};
 Mix_Music* mus[6] = {NULL};
 
-#define PICO8_W SCREEN_SIZE
+#define PICO8_W 400
 #define PICO8_H SCREEN_SIZE
+#define VIEWPORT_X ((PICO8_W - SCREEN_SIZE) / 2)
+#define MAP_SIDE_TILE_COUNT ((VIEWPORT_X + TILE_SIZE - 1) / TILE_SIZE)
 
 #ifdef _3DS
 static const int scale = 1;
@@ -291,6 +293,7 @@ static Mix_Music* current_music = NULL;
 static _Bool enable_screenshake = 1;
 static _Bool paused = 0;
 static _Bool running = 1;
+static int camera_x = 0, camera_y = 0;
 static void* initial_game_state = NULL;
 static void* game_state = NULL;
 static Mix_Music* game_state_music = NULL;
@@ -696,6 +699,10 @@ static void mainLoop(void) {
 	} else {
 		Celeste_P8_update();
 		Celeste_P8_draw();
+		if (camera_x < 0) p8_rectfill(0,0,-camera_x-1,PICO8_H-1,0);
+		if (camera_x > 0) p8_rectfill(PICO8_W-camera_x,0,PICO8_W-1,PICO8_H-1,0);
+		if (camera_y < 0) p8_rectfill(0,0,PICO8_W-1,-camera_y-1,0);
+		if (camera_y > 0) p8_rectfill(0,PICO8_H-camera_y,PICO8_W-1,PICO8_H-1,0);
 	}
 	OSDdraw();
 
@@ -850,7 +857,6 @@ static void p8_print(const char* str, int x, int y, int col) {
 }
 
 int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
-	static int camera_x = 0, camera_y = 0;
 	if (!enable_screenshake) {
 		camera_x = camera_y = 0;
 	}
@@ -904,7 +910,7 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 				srcrc.y *= scale;
 				srcrc.w = srcrc.h = scale*TILE_SIZE;
 				SDL_Rect dstrc = {
-					(x - camera_x)*scale, (y - camera_y)*scale,
+					(VIEWPORT_X + x - camera_x)*scale, (y - camera_y)*scale,
 					scale, scale
 				};
 				Xblit(gfx, &srcrc, screen, &dstrc, 0,flipx,flipy);
@@ -933,7 +939,7 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 			ResetPalette();
 		} break;
 		case CELESTE_P8_CIRCFILL: { //circfill(x,y,r,col)
-			int cx = INT_ARG() - camera_x;
+			int cx = VIEWPORT_X + INT_ARG() - camera_x;
 			int cy = INT_ARG() - camera_y;
 			int r = INT_ARG();
 			int col = INT_ARG();
@@ -982,7 +988,7 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 		} break;
 		case CELESTE_P8_PRINT: { //print(str,x,y,col)
 			const char* str = va_arg(args, const char*);
-			int x = INT_ARG() - camera_x;
+			int x = VIEWPORT_X + INT_ARG() - camera_x;
 			int y = INT_ARG() - camera_y;
 			int col = INT_ARG() % 16;
 
@@ -996,18 +1002,23 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 			p8_print(str,x,y,col);
 		} break;
 		case CELESTE_P8_RECTFILL: { //rectfill(x0,y0,x1,y1,col)
-			int x0 = INT_ARG() - camera_x;
-			int y0 = INT_ARG() - camera_y;
-			int x1 = INT_ARG() - camera_x;
-			int y1 = INT_ARG() - camera_y;
+			int x0 = INT_ARG();
+			int y0 = INT_ARG();
+			int x1 = INT_ARG();
+			int y1 = INT_ARG();
 			int col = INT_ARG();
 
-			p8_rectfill(x0,y0,x1,y1,col);
+			if (x0 == 0 && y0 == 0 && x1 == SCREEN_SIZE && y1 == SCREEN_SIZE) {
+				SDL_FillRect(screen, NULL, getcolor(col));
+			} else {
+				p8_rectfill(VIEWPORT_X+x0-camera_x,y0-camera_y,
+					VIEWPORT_X+x1-camera_x,y1-camera_y,col);
+			}
 		} break;
 		case CELESTE_P8_LINE: { //line(x0,y0,x1,y1,col)
-			int x0 = INT_ARG() - camera_x;
+			int x0 = VIEWPORT_X + INT_ARG() - camera_x;
 			int y0 = INT_ARG() - camera_y;
-			int x1 = INT_ARG() - camera_x;
+			int x1 = VIEWPORT_X + INT_ARG() - camera_x;
 			int y1 = INT_ARG() - camera_y;
 			int col = INT_ARG();
 
@@ -1017,7 +1028,7 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 			int tx = INT_ARG();
 			int ty = INT_ARG();
 
-			RET_INT(tilemap_data[tx+ty*128]);
+			RET_INT(tilemap_data[tx+ty*MAP_TILE_WIDTH]);
 		} break;
 		case CELESTE_P8_CAMERA: { //camera(x,y)
 			if (enable_screenshake) {
@@ -1037,9 +1048,12 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 			int mw = INT_ARG(), mh = INT_ARG();
 			int mask = INT_ARG();
 			
-			for (int x = 0; x < mw; x++) {
+			for (int x = -MAP_SIDE_TILE_COUNT; x < mw+MAP_SIDE_TILE_COUNT; x++) {
 				for (int y = 0; y < mh; y++) {
-					int tile = tilemap_data[x + mx + (y + my)*128];
+					int map_x = x + mx;
+					int map_y = y + my;
+					if (map_x < 0 || map_x >= MAP_TILE_WIDTH || map_y < 0 || map_y >= MAP_TILE_HEIGHT) continue;
+					int tile = tilemap_data[map_x + map_y*MAP_TILE_WIDTH];
 					//hack
 					if (mask == 0 || (mask == 4 && tile_flags[tile] == 4) || gettileflag(tile, mask != 4 ? mask-1 : mask)) {
 						SDL_Rect srcrc = {
@@ -1050,7 +1064,7 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
 						srcrc.y *= scale;
 						srcrc.w = srcrc.h = scale*TILE_SIZE;
 						SDL_Rect dstrc = {
-							(tx+x*TILE_SIZE - camera_x)*scale, (ty+y*TILE_SIZE - camera_y)*scale,
+							(VIEWPORT_X + tx+x*TILE_SIZE - camera_x)*scale, (ty+y*TILE_SIZE - camera_y)*scale,
 							scale*TILE_SIZE, scale*TILE_SIZE
 						};
 

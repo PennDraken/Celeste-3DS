@@ -396,7 +396,7 @@ static void begin_game() {
 }
 
 static int level_index() {
-	return room.x%8+room.y*8;
+	return room.x%MAP_ROOM_COLUMNS+room.y*MAP_ROOM_COLUMNS;
 }
 
 int Celeste_P8_get_level_index(void) {
@@ -1630,7 +1630,7 @@ static void next_room() {
 		P8music(30,500,7);
 	}
 
-	if (room.x==7) {
+	if (room.x==MAP_ROOM_COLUMNS-1) {
 		load_room(0,room.y+1);
 	} else {
 		load_room(room.x+1,room.y);
@@ -1658,7 +1658,7 @@ static void load_room(int x, int y) {
 	// entities
 	for (int tx=0; tx <= 15; tx++) {
 		for (int ty=0; ty <= 15; ty++) {
-			int tile = P8mget(room.x*16+tx,room.y*16+ty);
+			int tile = P8mget(room.x*ROOM_TILE_STRIDE+tx,room.y*ROOM_TILE_COUNT+ty);
 			if (tile==11) {
 				init_object(OBJ_PLATFORM,tx*LOGICAL_TILE_SIZE,ty*LOGICAL_TILE_SIZE)->dir=-1;
 				//newcount++;
@@ -1828,7 +1828,7 @@ void Celeste_P8_draw() {
 	}
 
 	// draw bg terrain
-	P8map(room.x * 16,room.y * 16,0,0,16,16,4);
+	P8map(room.x * ROOM_TILE_STRIDE,room.y * ROOM_TILE_COUNT,0,0,16,16,4);
 
 	// platforms/big chest
 	for (int i = 0; i < MAX_OBJECTS; i++) {
@@ -1840,7 +1840,7 @@ void Celeste_P8_draw() {
 
 	// draw terrain
 	int off=is_title() ? -4 : 0;
-	P8map(room.x*16,room.y * 16,off,0,16,16,2);
+	P8map(room.x*ROOM_TILE_STRIDE,room.y * ROOM_TILE_COUNT,off,0,16,16,2);
    
 	// draw objects
 	for (int i = 0; i < MAX_OBJECTS; i++) {
@@ -1856,7 +1856,7 @@ void Celeste_P8_draw() {
 	}
    
 	// draw fg terrain
-	P8map(room.x * 16,room.y * 16,0,0,16,16,8);
+	P8map(room.x * ROOM_TILE_STRIDE,room.y * ROOM_TILE_COUNT,0,0,16,16,8);
    
 	// particles
 	for (int i = 0; i <= 24; i++) {
@@ -1885,12 +1885,6 @@ void Celeste_P8_draw() {
 
 		p++;
 	}
-   
-	// draw outside of the screen for screenshake
-	P8rectfill(-5,-5,-1,LOGICAL_ROOM_SIZE+5,0);
-	P8rectfill(-5,-5,LOGICAL_ROOM_SIZE+5,-1,0);
-	P8rectfill(-5,LOGICAL_ROOM_SIZE,LOGICAL_ROOM_SIZE+5,LOGICAL_ROOM_SIZE+5,0);
-	P8rectfill(LOGICAL_ROOM_SIZE,-5,LOGICAL_ROOM_SIZE+5,LOGICAL_ROOM_SIZE+5,0);
    
 	// credits
 	if (is_title()) {
@@ -1977,7 +1971,7 @@ static bool tile_flag_at(int x,int y,int w,int h,int flag) {
 }
 
 static int tile_at(int x,int y) {
-	return P8mget(room.x * 16 + x, room.y * 16 + y);
+	return P8mget(room.x * ROOM_TILE_STRIDE + x, room.y * ROOM_TILE_COUNT + y);
 }
 
 static bool spikes_at(float x,float y,int w,int h,float xspd,float yspd) {
