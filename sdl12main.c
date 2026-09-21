@@ -13,6 +13,7 @@
 #include <time.h>
 #ifdef _3DS
 #include <3ds.h>
+#include <sys/stat.h>
 #endif
 #include "celeste.h"
 
@@ -310,6 +311,62 @@ static void* game_state = NULL;
 static Mix_Music* game_state_music = NULL;
 #ifdef _3DS
 static _Bool show_console = 0;
+
+#define SAVE_DIRECTORY "sdmc:/3ds/ccleste"
+#define SAVE_PATH SAVE_DIRECTORY "/save.bin"
+#define SAVE_MAGIC 0x43534c54u
+
+struct persistent_save_header {
+	unsigned int magic;
+	unsigned int state_size;
+};
+
+static void SavePersistentState(void) {
+	const size_t state_size = Celeste_P8_get_state_size();
+	struct persistent_save_header header = {SAVE_MAGIC, state_size};
+	void* state = SDL_malloc(state_size);
+	if (!state) {
+		ErrLog("couldn't allocate persistent save state\n");
+		return;
+	}
+
+	if (mkdir(SAVE_DIRECTORY, 0777) != 0 && errno != EEXIST) {
+		ErrLog("couldn't create save directory: %s\n", strerror(errno));
+		SDL_free(state);
+		return;
+	}
+
+	Celeste_P8_save_state(state);
+	FILE* file = fopen(SAVE_PATH, "wb");
+	if (!file || fwrite(&header, sizeof header, 1, file) != 1
+			|| fwrite(state, state_size, 1, file) != 1) {
+		ErrLog("couldn't save game state: %s\n", strerror(errno));
+	}
+	if (file) fclose(file);
+	SDL_free(state);
+}
+
+static void LoadPersistentState(void) {
+	const size_t state_size = Celeste_P8_get_state_size();
+	struct persistent_save_header header;
+	void* state = SDL_malloc(state_size);
+	if (!state) {
+		ErrLog("couldn't allocate persistent save state\n");
+		return;
+	}
+
+	FILE* file = fopen(SAVE_PATH, "rb");
+	if (file && fread(&header, sizeof header, 1, file) == 1
+			&& header.magic == SAVE_MAGIC && header.state_size == state_size
+			&& fread(state, state_size, 1, file) == 1) {
+		Celeste_P8_load_state(state);
+		printf("loaded persistent save state\n");
+	} else if (file) {
+		ErrLog("couldn't load game state; ignoring save file\n");
+	}
+	if (file) fclose(file);
+	SDL_free(state);
+}
 #endif
 static void mainLoop(void);
 static FILE* TAS = NULL;
@@ -498,6 +555,10 @@ int main(int argc, char** argv) {
 	}
 
 	Celeste_P8_init();
+
+#ifdef _3DS
+	if (!TAS) LoadPersistentState();
+#endif
 
 	printf("ready\n");
 	{
@@ -714,12 +775,13 @@ static void mainLoop(void) {
 	}
 
 #ifdef _3DS
-	{ //only refresh the minimap when a new level has been loaded
+	{ //refresh the minimap and persist progress when a new level has been loaded
 		static int last_drawn_level = -1;
 		int level = Celeste_P8_get_level_index();
 		if (level != last_drawn_level) {
 			last_drawn_level = level;
 			draw_bottom_map();
+			if (!TAS) SavePersistentState();
 		}
 	}
 #endif
