@@ -399,6 +399,10 @@ static int level_index() {
 	return room.x%8+room.y*8;
 }
 
+int Celeste_P8_get_level_index(void) {
+	return level_index();
+}
+
 static bool is_title() {
 	return level_index()==31;
 }

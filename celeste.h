@@ -27,6 +27,7 @@ extern void Celeste_P8_set_rndseed(unsigned seed);
 extern void Celeste_P8_init(void);
 extern void Celeste_P8_update(void);
 extern void Celeste_P8_draw(void);
+extern int Celeste_P8_get_level_index(void);
 
 extern void Celeste_P8__DEBUG(void); //debug functionality
 
