@@ -427,7 +427,15 @@ static void draw_bottom_map(void) {
 		int level = Celeste_P8_get_level_index();
 		if (level >= MAP_LEVEL_POINT_COUNT) level = -1; //title screen
 		if (level >= 0 && bottom_player_sprite) {
-			SDL_Rect dst = {map_level_points[level][0] - 2, map_level_points[level][1] - 10, 0, 0};
+			// The map point is the top-left corner of a radius-2 circle.
+			// The player sprite is 18x18, and its center should sit on that circle center.
+			const int sprite_half = 18 / 2;
+			SDL_Rect dst = {
+				map_level_points[level][0] + 2 - sprite_half,
+				map_level_points[level][1] + 2 - sprite_half,
+				0,
+				0
+			};
 			SDL_CHECK(SDL_BlitSurface(bottom_player_sprite, NULL, bottom_screen, &dst) == 0);
 		}
 	}
